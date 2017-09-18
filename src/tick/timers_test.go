@@ -36,8 +36,7 @@ func TestBasicTicker(t *testing.T) {
 	select {
 	case q := <-ticker.Quit:
 		if counter != 5 && q {
-			t.Errorf("Incorrect `counter` value.")
-			t.Errorf("Expected: %d | Received: %d", 5, counter)
+			t.Errorf("\nIncorrect `counter` value.\nExpected: %d | Received: %d", 5, counter)
 		}
 	}
 }
