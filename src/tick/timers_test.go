@@ -2,7 +2,6 @@ package discord
 
 import (
 	"fmt"
-	"sync"
 	"testing"
 	"time"
 )
@@ -13,13 +12,9 @@ func TestBasicTicker(t *testing.T) {
 	var counter = 1
 	var i = 0
 
-	mu := sync.Mutex{}
-
 	f := func(to *Ticker) {
-		fmt.Println("Iteration: " + string(i))
-		mu.Lock()
-		defer mu.Unlock()
 
+		fmt.Printf("Iteration: %d\n", i)
 		if i >= 5 {
 			to.Done()
 		}
