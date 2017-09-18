@@ -9,7 +9,7 @@ import (
 func TestBasicTicker(t *testing.T) {
 	// t.Skip("TickOnce not implemented")
 
-	var counter = 1
+	var counter = 0
 	var i = 0
 
 	f := func(to *Ticker) {
