@@ -1,5 +1,4 @@
 bin/
 
 alpha
-
-*.toml
+tags
