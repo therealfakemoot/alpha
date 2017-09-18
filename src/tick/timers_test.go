@@ -27,9 +27,9 @@ func TestBasicTicker(t *testing.T) {
 		return
 	}
 
-	ticker := NewTicker(1, f, cleanUp)
+	ticker := NewTicker(1*time.Second, f, cleanUp)
 
-	time.AfterFunc(6, func() {
+	time.AfterFunc(6*time.Second, func() {
 		ticker.Done()
 	})
 
