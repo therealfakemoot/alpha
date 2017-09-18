@@ -27,7 +27,6 @@ func messageCreate(s *dgo.Session, m *dgo.MessageCreate) {
 		to := strings.ToUpper(args[2])
 
 		apiResp := exc.HistoMinute(0, from, to)
-
 		s.ChannelMessageSendEmbed(m.ChannelID, apiResp.Embed(false))
 
 	}

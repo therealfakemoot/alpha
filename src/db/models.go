@@ -2,7 +2,6 @@ package db
 
 import (
 	"fmt"
-	exc "github.com/therealfakemoot/alpha/src/exchange"
 	bdb "github.com/tidwall/buntdb"
 )
 
