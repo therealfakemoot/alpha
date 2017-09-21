@@ -4,60 +4,42 @@ import (
 	"time"
 )
 
-// Ticker describes a value capable of performing one task at regular intervals with support for pausing/resuming with Fire()/Pause() and finalizing via Done()
+// TimerFunc should, generally, be a closure which accepts a Timer pointer and uses enclosed values to do its work.
+type TimerFunc func(*Timer)
+
+// CleanupFunc should also be a closure, used to finalize/close values or sessions.
+type CleanupFunc func(*Timer)
+
+// Timer is a type that describes a repeating event.
 //
-// Fire() begins ( or resumes )
-// returns no value, it simply executes a side effect. Users must mind their state and use mutxes when appropriate.
-type Ticker struct {
-	F       TimerFunc
-	CleanUp CleanupFunc
-	Dur     time.Duration
-	Timer   *time.Timer
-	Quit    chan bool
+// Timer has three Parameters: Timer, Tf, Cf
+//   Timer: a time.Ticker value, providing a signal pulse for the callback func.
+//   Tf   : a TimerFunc that will be called when the Timer pulses.
+//   Cf   : a CleanupFunc that is called when the timer is terminated.
+type Timer struct {
+	Timer *time.Ticker
+	Tf    TimerFunc
+	Cf    CleanupFunc
 }
 
-// TimerFunc is a named type describing a callback that can interact with its parent timer.
-type TimerFunc func(*Ticker)
+// Start is used to start the Timer.
+func (t *Timer) Start() {
+	go func() {
+		for range t.Timer.C {
+			t.Tf(t)
+		}
+	}()
 
-// CleanupFunc is similar to TimerFunc, but is only called once, when Done() is called.
-type CleanupFunc func(*Ticker)
-
-func (to *Ticker) refresh() {
-	to.Timer = NewTicker(to.Dur, to.F, to.CleanUp).Timer
 }
 
-// Fire executes TimerFunc in a goroutine and defers the refresh() method to start the next cycle.
-func (to *Ticker) Fire() {
-	go to.F(to)
-	defer to.refresh()
+// Done executes cleanup code.
+func (t *Timer) Done() {
+	t.Cf(t)
 }
 
-// Stop terminates the timer and invokes Done() and the CleanupFunc.
-func (to *Ticker) Stop() {
-	to.Timer.Stop()
-	to.Done()
-}
-
-// Done executes the CleanupFunc and sends a true value on the Quit channel.
-func (to *Ticker) Done() {
-	to.CleanUp(to)
-	to.Quit <- true
-}
-
-// NewTicker returns a new timed discord event.
-func NewTicker(d time.Duration, f TimerFunc, c CleanupFunc) *Ticker {
-	ticker := &Ticker{}
-
-	doFunc := func() {
-		ticker.F(ticker)
-		defer ticker.refresh()
-	}
-	t := time.AfterFunc(d, doFunc)
-
-	ticker.Dur = d
-	ticker.F = f
-	ticker.Timer = t
-	ticker.CleanUp = c
-	ticker.Quit = make(chan bool, 1)
-	return ticker
+// NewTimer is used to create a Timer. It will automatically start the timer upon creation.
+func NewTimer(d time.Duration, f TimerFunc, c CleanupFunc) *Timer {
+	t := &Timer{Tf: f, Cf: c, Timer: time.NewTicker(d)}
+	t.Start()
+	return t
 }
