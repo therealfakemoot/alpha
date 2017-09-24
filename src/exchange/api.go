@@ -148,7 +148,12 @@ func (pq *PriceQuery) Embed(min bool) *dgo.MessageEmbed {
 	low.Value = fmt.Sprintf("[%f]", stats.Low)
 	low.Inline = true
 
-	e.Fields = []*dgo.MessageEmbedField{high, low}
+	timestamp := &dgo.MessageEmbedField{}
+	timestamp.Name = "Self destruct timer"
+	timestamp.Value = "5"
+	timestamp.Inline = false
+
+	e.Fields = []*dgo.MessageEmbedField{high, low, timestamp}
 
 	if pq.Prices[0].High > pq.Prices[len(pq.Prices)-1].High {
 		e.Color = 0x00FF00
