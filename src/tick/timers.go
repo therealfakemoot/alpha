@@ -12,6 +12,7 @@ type CleanupFunc func(*Timer)
 
 // Timer is a type that describes a repeating event.
 //
+// Using NewTimer is recommended. You may manually instantiate Timer if you want more granular control over the start process.
 // Timer has three Parameters: Timer, Tf, Cf
 //   Timer: a time.Ticker value, providing a signal pulse for the callback func.
 //   Tf   : a TimerFunc that will be called when the Timer pulses.
@@ -34,6 +35,7 @@ func (t *Timer) Start() {
 
 // Done executes cleanup code.
 func (t *Timer) Done() {
+	t.Timer.Stop()
 	t.Cf(t)
 }
 
