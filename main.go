@@ -5,6 +5,7 @@ import (
 	dgo "github.com/bwmarrin/discordgo"
 	"github.com/spf13/viper"
 	conf "github.com/therealfakemoot/alpha/src/conf"
+	disc "github.com/therealfakemoot/alpha/src/discord"
 	exc "github.com/therealfakemoot/alpha/src/exchange"
 	tick "github.com/therealfakemoot/alpha/src/tick"
 	"os"
@@ -21,63 +22,65 @@ func messageCreate(s *dgo.Session, m *dgo.MessageCreate) {
 		return
 	}
 
+	args := strings.Split(m.Content, " ")
 	if strings.HasPrefix(m.Content, "!exchange") {
-		args := strings.Split(m.Content, " ")
 		if len(args) != 3 {
-			lastMessage, _ = s.ChannelMessageSend(m.ChannelID, "Doing it wrong")
-			var i = 3
-			f := func(t *tick.Timer) {
-				i--
-				fmt.Println("TICK")
-				if i == 0 {
-					t.Done()
-				}
-			}
-
-			c := func(t *tick.Timer) {
-				s.ChannelMessageDelete(lastMessage.ChannelID, lastMessage.ID)
-			}
-
-			tick.NewTimer(3*time.Second, f, c)
+			disc.NewMessage("Doing it wrong.", s, disc.FiveSecondPolicy)
 			return
 		}
 
-		from := strings.ToUpper(args[1])
-		to := strings.ToUpper(args[2])
-
-		apiResp := exc.HistoMinute(0, from, to)
-		apiEmbed := apiResp.Embed(false)
-		lastPriceMessage, err := s.ChannelMessageSendEmbed(m.ChannelID, apiEmbed)
-		if err != nil {
-
-			fmt.Println(err)
-			return
-		}
-
-		var i = 0
-
-		tf := func(tt *tick.Timer) {
-			if i > 4 {
-				tt.Done()
-				return
+		lastMessage, _ = s.ChannelMessageSend(m.ChannelID, "Doing it wrong")
+		var i = 3
+		f := func(t *tick.Timer) {
+			i--
+			fmt.Println("TICK")
+			if i == 0 {
+				t.Done()
 			}
-			tsField := &dgo.MessageEmbedField{}
-			tsField.Name = "Self destruct timer"
-			tsField.Value = string(5 - i)
-			tsField.Inline = false
-			me := dgo.NewMessageEdit(lastPriceMessage.ChannelID, lastPriceMessage.ID)
-			apiEmbed.Fields[2] = tsField
-			me.SetEmbed(apiEmbed)
-			i++
 		}
 
-		cf := func(to *tick.Timer) {
-			s.ChannelMessageDelete(lastPriceMessage.ChannelID, lastPriceMessage.ID)
+		c := func(t *tick.Timer) {
+			s.ChannelMessageDelete(lastMessage.ChannelID, lastMessage.ID)
 		}
 
-		tick.NewTimer(5*time.Second, tf, cf)
-
+		tick.NewTimer(3*time.Second, f, c)
+		return
 	}
+
+	from := strings.ToUpper(args[1])
+	to := strings.ToUpper(args[2])
+
+	apiResp := exc.HistoMinute(0, from, to)
+	apiEmbed := apiResp.Embed(false)
+	lastPriceMessage, err := s.ChannelMessageSendEmbed(m.ChannelID, apiEmbed)
+	if err != nil {
+
+		fmt.Println(err)
+		return
+	}
+
+	var i = 0
+
+	tf := func(tt *tick.Timer) {
+		if i > 4 {
+			tt.Done()
+			return
+		}
+		tsField := &dgo.MessageEmbedField{}
+		tsField.Name = "Self destruct timer"
+		tsField.Value = string(5 - i)
+		tsField.Inline = false
+		me := dgo.NewMessageEdit(lastPriceMessage.ChannelID, lastPriceMessage.ID)
+		apiEmbed.Fields[2] = tsField
+		me.SetEmbed(apiEmbed)
+		i++
+	}
+
+	cf := func(to *tick.Timer) {
+		s.ChannelMessageDelete(lastPriceMessage.ChannelID, lastPriceMessage.ID)
+	}
+
+	tick.NewTimer(5*time.Second, tf, cf)
 
 }
 
