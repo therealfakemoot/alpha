@@ -6,7 +6,8 @@ import (
 	"github.com/spf13/viper"
 )
 
-func setup() *viper.Viper {
+// LoadConf provides a standard bot viper struct
+func LoadConf() *viper.Viper {
 	v := viper.New()
 
 	v.SetConfigName("bot-conf")
@@ -27,9 +28,4 @@ func setup() *viper.Viper {
 	})
 
 	return v
-}
-
-// LoadConf provides a standard bot viper struct
-func LoadConf() *viper.Viper {
-	return setup()
 }
