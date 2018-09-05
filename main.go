@@ -2,11 +2,10 @@ package main
 
 import (
 	"fmt"
-	"github.com/Necroforger/dgrouter/exrouter"
 	dgo "github.com/bwmarrin/discordgo"
 	"github.com/fsnotify/fsnotify"
 	"github.com/spf13/viper"
-	trash "github.com/therealfakemoot/trash-talk"
+	"github.com/therealfakemoot/alpha/routes"
 	"log"
 	"os/user"
 )
@@ -53,26 +52,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	r := exrouter.New()
-
-	r.On("help", func(ctx *exrouter.Context) {
-		ctx.Reply("go fuck yourself")
-	}).Desc("Available commands")
-
-	r.On("mock", func(ctx *exrouter.Context) {
-		msgMap := conf.Get("msgMap").(map[string]*dgo.Message)
-		if len(ctx.Msg.Mentions) == 0 {
-			ctx.Reply("Who do you want me to make fun of, dumbass?")
-		}
-		if len(msgMap) == 0 {
-			ctx.Reply("Nobody's said anything yet, idiot.")
-		}
-
-		target := ctx.Msg.Mentions[0].ID
-		targetMsg := msgMap[target].Content
-		ctx.Reply(trash.Mock(targetMsg))
-
-	}).Desc("Makes fun of the mentioned user's last message")
+	r := routes.All()
 
 	s.AddHandler(func(_ *dgo.Session, m *dgo.MessageCreate) {
 		r.FindAndExecute(s, conf.GetString("prefix"), s.State.User.ID, m.Message)
