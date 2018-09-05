@@ -70,7 +70,19 @@ func main() {
 	root := routes.Build()
 	root.On("mock", routes.Mock(conf)).Desc("Makes fun of the last message sent by a user.")
 
-	s.AddHandler(func(_ *dgo.Session, m *dgo.MessageCreate) {
+	s.AddHandler(func(s *dgo.Session, r *dgo.Ready) {
+		s.UpdateStatus(0, conf.GetString("status"))
+	})
+
+	s.AddHandler(func(s *dgo.Session, r *dgo.Connect) {
+		s.UpdateStatus(0, conf.GetString("status"))
+	})
+
+	s.AddHandler(func(s *dgo.Session, r *dgo.Resumed) {
+		s.UpdateStatus(0, conf.GetString("status"))
+	})
+
+	s.AddHandler(func(s *dgo.Session, m *dgo.MessageCreate) {
 		root.FindAndExecute(s, conf.GetString("prefix"), s.State.User.ID, m.Message)
 
 		updateState(conf, m)
