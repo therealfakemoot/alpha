@@ -2,12 +2,14 @@ package main
 
 import (
 	"fmt"
+	"log"
+	"os/user"
+
 	dgo "github.com/bwmarrin/discordgo"
 	"github.com/fsnotify/fsnotify"
 	"github.com/spf13/viper"
+
 	"github.com/therealfakemoot/alpha/routes"
-	"log"
-	"os/user"
 )
 
 // LoadConfig instantiates a Viper object with config info required for the bot to work.
