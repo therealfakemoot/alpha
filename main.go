@@ -2,133 +2,90 @@ package main
 
 import (
 	"fmt"
+	"github.com/Necroforger/dgrouter/exrouter"
 	dgo "github.com/bwmarrin/discordgo"
+	"github.com/fsnotify/fsnotify"
 	"github.com/spf13/viper"
-	conf "github.com/therealfakemoot/alpha/src/conf"
-	disc "github.com/therealfakemoot/alpha/src/discord"
-	exc "github.com/therealfakemoot/alpha/src/exchange"
-	tick "github.com/therealfakemoot/alpha/src/tick"
-	"os"
-	"os/signal"
-	"strings"
-	"syscall"
-	"time"
+	trash "github.com/therealfakemoot/trash-talk"
+	"log"
+	"os/user"
 )
 
-var lastMessage *dgo.Message
+// LoadConfig instantiates a Viper object with config info required for the bot to work.
+func LoadConfig() *viper.Viper {
+	v := viper.New()
 
-func messageCreate(s *dgo.Session, m *dgo.MessageCreate) {
-	if m.Author.ID == s.State.User.ID {
-		return
-	}
+	v.SetEnvPrefix("ALPHA")
+	v.AutomaticEnv()
+	v.SetConfigName(".alpha")
+	v.AddConfigPath("/etc/alpha")
 
-	args := strings.Split(m.Content, " ")
-	if strings.HasPrefix(m.Content, "!exchange") {
-		if len(args) != 3 {
-			disc.NewMessage("Doing it wrong.", s, disc.FiveSecondPolicy)
-			return
-		}
-
-		lastMessage, _ = s.ChannelMessageSend(m.ChannelID, "Doing it wrong")
-		var i = 3
-		f := func(t *tick.Timer) {
-			i--
-			fmt.Println("TICK")
-			if i == 0 {
-				t.Done()
-			}
-		}
-
-		c := func(t *tick.Timer) {
-			s.ChannelMessageDelete(lastMessage.ChannelID, lastMessage.ID)
-		}
-
-		tick.NewTimer(3*time.Second, f, c)
-		return
-	}
-
-	from := strings.ToUpper(args[1])
-	to := strings.ToUpper(args[2])
-
-	apiResp := exc.HistoMinute(0, from, to)
-	apiEmbed := apiResp.Embed(false)
-	lastPriceMessage, err := s.ChannelMessageSendEmbed(m.ChannelID, apiEmbed)
+	user, err := user.Current()
 	if err != nil {
-
-		fmt.Println(err)
-		return
+		log.Fatal(err)
 	}
 
-	var i = 0
+	v.AddConfigPath(user.HomeDir)
 
-	tf := func(tt *tick.Timer) {
-		if i > 4 {
-			tt.Done()
-			return
-		}
-		tsField := &dgo.MessageEmbedField{}
-		tsField.Name = "Self destruct timer"
-		tsField.Value = string(5 - i)
-		tsField.Inline = false
-		me := dgo.NewMessageEdit(lastPriceMessage.ChannelID, lastPriceMessage.ID)
-		apiEmbed.Fields[2] = tsField
-		me.SetEmbed(apiEmbed)
-		i++
-	}
-
-	cf := func(to *tick.Timer) {
-		s.ChannelMessageDelete(lastPriceMessage.ChannelID, lastPriceMessage.ID)
-	}
-
-	tick.NewTimer(5*time.Second, tf, cf)
-
-}
-
-func guildCreate(s *dgo.Session, event *dgo.GuildCreate) {
-
-	if event.Guild.Unavailable {
-		return
-	}
-
-	for _, channel := range event.Guild.Channels {
-		if channel.ID == event.Guild.ID {
-			_, _ = s.ChannelMessageSend(channel.ID, "Alpha, reporting for duty.")
-			return
-		}
-	}
-}
-
-func runBot(v *viper.Viper) {
-	d, err := dgo.New("Bot " + v.GetString("TOKEN_DISCORD"))
-
-	d.LogLevel = dgo.LogDebug
-
-	d.AddHandler(messageCreate)
-	d.AddHandler(guildCreate)
-
+	err = v.ReadInConfig()
 	if err != nil {
-		fmt.Println(err)
-		panic(err)
+		fmt.Errorf("Fatal error config file: %s \n", err)
 	}
 
-	err = d.Open()
+	v.OnConfigChange(func(e fsnotify.Event) {
+		fmt.Println("Config file changed:", e.Name)
+	})
 
-	if err != nil {
-		fmt.Println(err)
-		panic(err)
-	}
-
-	fmt.Println("Bot is now running.  Press CTRL-C to exit.")
-	sc := make(chan os.Signal, 1)
-	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt, os.Kill)
-	<-sc
-
-	d.Close()
-
+	return v
 }
 
 func main() {
-	v := conf.LoadConf()
-	v.ReadInConfig()
-	runBot(v)
+	conf := LoadConfig()
+	fmt.Printf("%+v\n", conf.AllSettings())
+
+	token := "Bot " + conf.GetString("token")
+
+	msgMap := make(map[string]*dgo.Message)
+	conf.Set("msgMap", msgMap)
+
+	s, err := dgo.New(token)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	r := exrouter.New()
+
+	r.On("help", func(ctx *exrouter.Context) {
+		ctx.Reply("go fuck yourself")
+	}).Desc("Available commands")
+
+	r.On("mock", func(ctx *exrouter.Context) {
+		msgMap := conf.Get("msgMap").(map[string]*dgo.Message)
+		if len(ctx.Msg.Mentions) == 0 {
+			ctx.Reply("Who do you want me to make fun of, dumbass?")
+		}
+		if len(msgMap) == 0 {
+			ctx.Reply("Nobody's said anything yet, idiot.")
+		}
+
+		target := ctx.Msg.Mentions[0].ID
+		targetMsg := msgMap[target].Content
+		ctx.Reply(trash.Mock(targetMsg))
+
+	}).Desc("Makes fun of the mentioned user's last message")
+
+	s.AddHandler(func(_ *dgo.Session, m *dgo.MessageCreate) {
+		r.FindAndExecute(s, conf.GetString("prefix"), s.State.User.ID, m.Message)
+
+		msgMap := conf.Get("msgMap").(map[string]*dgo.Message)
+		msgMap[m.Author.ID] = m.Message
+		conf.Set("msgMap", msgMap)
+	})
+	err = s.Open()
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	<-make(chan struct{})
 }
