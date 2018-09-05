@@ -4,8 +4,8 @@ import (
 	"github.com/Necroforger/dgrouter/exrouter"
 )
 
-// Build creates an exrouter with a help message.
-func Build() *exrouter.Route {
+// New creates an exrouter with a help message.
+func New() *exrouter.Route {
 	r := exrouter.New()
 
 	r.Default = r.On("help", func(ctx *exrouter.Context) {
@@ -15,5 +15,6 @@ func Build() *exrouter.Route {
 		}
 		ctx.Reply("```" + text + "```")
 	}).Desc("prints this help menu")
+
 	return r
 }

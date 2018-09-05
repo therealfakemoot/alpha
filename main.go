@@ -40,7 +40,6 @@ func LoadConfig() *viper.Viper {
 
 func main() {
 	conf := LoadConfig()
-	fmt.Printf("%+v\n", conf.AllSettings())
 
 	token := "Bot " + conf.GetString("token")
 
@@ -52,10 +51,11 @@ func main() {
 		log.Fatal(err)
 	}
 
-	r := routes.All()
+	root := routes.Build()
+	root.On("mock", routes.Mock(conf)).Desc("Makes fun of the last message sent by a user.")
 
 	s.AddHandler(func(_ *dgo.Session, m *dgo.MessageCreate) {
-		r.FindAndExecute(s, conf.GetString("prefix"), s.State.User.ID, m.Message)
+		root.FindAndExecute(s, conf.GetString("prefix"), s.State.User.ID, m.Message)
 
 		msgMap := conf.Get("msgMap").(map[string]*dgo.Message)
 		msgMap[m.Author.ID] = m.Message
