@@ -40,6 +40,20 @@ func LoadConfig() *viper.Viper {
 	return v
 }
 
+func updateState(conf *viper.Viper, e interface{}) {
+	switch e.(type) {
+	case *dgo.MessageCreate:
+		m := e.(*dgo.MessageCreate)
+		msgMap := conf.Get("msgMap").(map[string]*dgo.Message)
+		msgMap[m.Author.ID] = m.Message
+		conf.Set("msgMap", msgMap)
+	case *dgo.Ready:
+
+	default:
+		return
+	}
+}
+
 func main() {
 	conf := LoadConfig()
 
@@ -59,10 +73,10 @@ func main() {
 	s.AddHandler(func(_ *dgo.Session, m *dgo.MessageCreate) {
 		root.FindAndExecute(s, conf.GetString("prefix"), s.State.User.ID, m.Message)
 
-		msgMap := conf.Get("msgMap").(map[string]*dgo.Message)
-		msgMap[m.Author.ID] = m.Message
-		conf.Set("msgMap", msgMap)
+		updateState(conf, m)
+
 	})
+
 	err = s.Open()
 
 	if err != nil {
