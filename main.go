@@ -32,8 +32,8 @@ func main() {
 		log.Fatal(err)
 	}
 
-	root := NewRoute()
-	root.On("mock", Mock(conf)).Desc("Makes fun of the last message sent by a user.")
+	cmds := make(map[string]Command)
+	cmds["mock"] = Mock
 
 	s.AddHandler(func(s *dgo.Session, r *dgo.Ready) {
 		s.UpdateStatus(0, conf.Status)
@@ -48,7 +48,11 @@ func main() {
 	})
 
 	s.AddHandler(func(s *dgo.Session, m *dgo.MessageCreate) {
-		root.FindAndExecute(s, conf.Prefix, s.State.User.ID, m.Message)
+		err = Route(m.Content, conf, cmds, s, m)
+		if err != nil {
+			s.ChannelMessageSend(m.ChannelID, "Error happened")
+		}
+
 		updateState(conf, m)
 
 	})
