@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"os/user"
 
@@ -29,7 +28,7 @@ func LoadConfig() *viper.Viper {
 
 	err = v.ReadInConfig()
 	if err != nil {
-		fmt.Errorf("Fatal error config file: %s \n", err)
+		log.Errorf("Fatal error config file: %s \n", err)
 	}
 
 	return v
@@ -83,11 +82,11 @@ func main() {
 	})
 
 	err = s.Open()
+	defer s.Close()
 
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	<-make(chan struct{})
-	s.Close()
 }
