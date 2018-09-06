@@ -2,6 +2,8 @@ package main
 
 import (
 	"github.com/Necroforger/dgrouter/exrouter"
+	dgo "github.com/bwmarrin/discordgo"
+	trash "github.com/therealfakemoot/trash-talk"
 )
 
 // Build creates an exrouter with a help message.
@@ -31,6 +33,7 @@ func Mock(conf Conf) func(*exrouter.Context) {
 		targetMsg, ok := msgMap[target]
 		if !ok {
 			ctx.Reply("Try again, chucklefuck.")
+			return
 		}
 
 		ctx.Reply(trash.Mock(targetMsg.Content))
