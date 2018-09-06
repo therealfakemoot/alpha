@@ -6,7 +6,6 @@ import (
 	"os/user"
 
 	dgo "github.com/bwmarrin/discordgo"
-	"github.com/fsnotify/fsnotify"
 	"github.com/spf13/viper"
 
 	"github.com/therealfakemoot/alpha/routes"
@@ -33,10 +32,6 @@ func LoadConfig() *viper.Viper {
 		fmt.Errorf("Fatal error config file: %s \n", err)
 	}
 
-	v.OnConfigChange(func(e fsnotify.Event) {
-		fmt.Println("Config file changed:", e.Name)
-	})
-
 	return v
 }
 
@@ -48,7 +43,6 @@ func updateState(conf *viper.Viper, e interface{}) {
 		msgMap[m.Author.ID] = m.Message
 		conf.Set("msgMap", msgMap)
 	case *dgo.Ready:
-
 	default:
 		return
 	}
@@ -84,7 +78,6 @@ func main() {
 
 	s.AddHandler(func(s *dgo.Session, m *dgo.MessageCreate) {
 		root.FindAndExecute(s, conf.GetString("prefix"), s.State.User.ID, m.Message)
-
 		updateState(conf, m)
 
 	})
@@ -96,4 +89,5 @@ func main() {
 	}
 
 	<-make(chan struct{})
+	s.Close()
 }
