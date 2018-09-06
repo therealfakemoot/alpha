@@ -38,7 +38,10 @@ func LoadConfig() Conf {
 		log.Fatalf("Unable to read config file: %s", err)
 	}
 
-	json.Unmarshal(rawConf, &v)
+	err = json.Unmarshal(rawConf, &v)
+	if err != nil {
+		log.Fatalf("Error unmarshaling JSON: %s", err)
+	}
 
 	return v
 }
