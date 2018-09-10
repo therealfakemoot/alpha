@@ -36,21 +36,21 @@ func main() {
 	cmds["mock"] = Mock
 
 	s.AddHandler(func(s *dgo.Session, r *dgo.Ready) {
-		s.UpdateStatus(0, conf.Status)
+		Route("", conf, cmds, s, r)
 	})
 
 	s.AddHandler(func(s *dgo.Session, r *dgo.Connect) {
-		s.UpdateStatus(0, conf.Status)
+		Route("", conf, cmds, s, r)
 	})
 
 	s.AddHandler(func(s *dgo.Session, r *dgo.Resumed) {
-		s.UpdateStatus(0, conf.Status)
+		Route("", conf, cmds, s, r)
 	})
 
 	s.AddHandler(func(s *dgo.Session, m *dgo.MessageCreate) {
 		err = Route(m.Content, conf, cmds, s, m)
 		if err != nil {
-			s.ChannelMessageSend(m.ChannelID, "Error happened")
+			s.ChannelMessageSend(m.ChannelID, err.Error())
 		}
 
 		updateState(conf, m)
