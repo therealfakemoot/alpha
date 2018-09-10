@@ -28,7 +28,7 @@ func LoadConfig() *viper.Viper {
 
 	err = v.ReadInConfig()
 	if err != nil {
-		log.Errorf("Fatal error config file: %s \n", err)
+		log.Panicf("Fatal error config file: %s \n", err)
 	}
 
 	return v
