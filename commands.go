@@ -8,9 +8,18 @@ import (
 	trash "github.com/therealfakemoot/trash-talk"
 )
 
+type ErrUnexpectedEvent struct {
+	event interface{}
+}
+
+func (e *ErrUnexpectedEvent) Error() string {
+	return fmt.Sprintf("%+v", e.event)
+}
+
 var (
 	// IncorrectArgs is a custom error type so I can eventually gracefully handle specific errors I guess.
-	IncorrectArgs = errors.New("incorrect arguments supplied")
+	ErrIncorrectArgs = errors.New("incorrect arguments supplied")
+	ErrNoCmdFound    = errors.New("no matching command found")
 )
 
 // Command blah blah
@@ -18,14 +27,23 @@ type Command func(args []string, conf Conf, s *dgo.Session, e interface{}) error
 
 // Route blah blah
 func Route(input string, conf Conf, cmds map[string]Command, s *dgo.Session, e interface{}) error {
-	args := strings.Split(input, " ")
+	switch e.(type) {
+	case *dgo.MessageCreate:
+		args := strings.Split(input, " ")
 
-	if string(args[0][0]) == "!" {
-		cmd, ok := cmds[args[0][1:]]
-		if !ok {
-			return IncorrectArgs
+		if string(args[0][0]) == "!" {
+			cmd, ok := cmds[args[0][1:]]
+			if !ok {
+				return ErrNoCmdFound
+			}
+			return cmd(args[1:], conf, s, e)
 		}
-		return cmd(args[1:], conf, s, e)
+	case *dgo.Ready:
+	case *dgo.Connect:
+	case *dgo.Resumed:
+		s.UpdateStatus(0, conf.Status)
+	default:
+		return ErrUnexpectedEvent{event: e}
 	}
 	return nil
 }
@@ -36,7 +54,7 @@ func Mock(args []string, conf Conf, s *dgo.Session, e interface{}) error {
 	m := e.(*dgo.MessageCreate)
 	if len(m.Message.Mentions) == 0 {
 		s.ChannelMessageSend(m.ChannelID, "You didn't mention anyone.")
-		return IncorrectArgs
+		return ErrIncorrectArgs
 	}
 
 	target := m.Message.Mentions[0].ID
