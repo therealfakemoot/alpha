@@ -2,24 +2,27 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 
 	dgo "github.com/bwmarrin/discordgo"
 	trash "github.com/therealfakemoot/trash-talk"
 )
 
+// ErrUnexpectedEvent is thrown when discordgo gives me an unexpected or unhandled event.
 type ErrUnexpectedEvent struct {
 	event interface{}
 }
 
-func (e *ErrUnexpectedEvent) Error() string {
+func (e ErrUnexpectedEvent) Error() string {
 	return fmt.Sprintf("%+v", e.event)
 }
 
 var (
-	// IncorrectArgs is a custom error type so I can eventually gracefully handle specific errors I guess.
+	// ErrIncorrectArgs is a custom error type so I can eventually gracefully handle specific errors I guess.
 	ErrIncorrectArgs = errors.New("incorrect arguments supplied")
-	ErrNoCmdFound    = errors.New("no matching command found")
+	// ErrNoCmdFound indicates the cmds map doesn't have a matching key.
+	ErrNoCmdFound = errors.New("no matching command found")
 )
 
 // Command blah blah
