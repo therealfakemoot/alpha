@@ -34,6 +34,7 @@ func main() {
 
 	cmds := make(map[string]Command)
 	cmds["mock"] = Mock
+	cmds["bitch"] = Complain
 
 	s.AddHandler(func(s *dgo.Session, r *dgo.Ready) {
 		Route("", conf, cmds, s, r)

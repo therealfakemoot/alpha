@@ -64,9 +64,16 @@ func Mock(args []string, conf Conf, s *dgo.Session, e interface{}) error {
 	targetMsg, ok := msgMap[target]
 	if !ok {
 		s.ChannelMessageSend(m.ChannelID, "They haven't said anything yet.")
-		return IncorrectArgs
+		return ErrIncorrectArgs
 	}
 
 	s.ChannelMessageSend(m.ChannelID, trash.Mock(targetMsg.Content))
+	return nil
+}
+
+func Complain(args []string, conf Conf, s *dgo.Session, e interface{}) error {
+	m := e.(*dgo.MessageCreate)
+	s.ChannelMessageSend(m.ChannelID, "Life is hard.")
+
 	return nil
 }
