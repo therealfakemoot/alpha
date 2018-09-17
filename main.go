@@ -49,6 +49,9 @@ func main() {
 	})
 
 	s.AddHandler(func(s *dgo.Session, m *dgo.MessageCreate) {
+		if m.Author.ID == s.State.User.ID {
+			return
+		}
 		err = Route(m.Content, conf, cmds, s, m)
 		if err == ErrNoCmdGiven {
 			Chatter(m.Content, conf, s, m)
