@@ -23,6 +23,8 @@ var (
 	ErrIncorrectArgs = errors.New("incorrect arguments supplied")
 	// ErrNoCmdFound indicates the cmds map doesn't have a matching key.
 	ErrNoCmdFound = errors.New("no matching command found")
+	// ErrNoCmdGiven indicates the message is not attempting to execute a command.
+	ErrNoCmdGiven = errors.New("no command requested")
 )
 
 // Command blah blah

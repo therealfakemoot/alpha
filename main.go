@@ -50,7 +50,9 @@ func main() {
 
 	s.AddHandler(func(s *dgo.Session, m *dgo.MessageCreate) {
 		err = Route(m.Content, conf, cmds, s, m)
-		if err != nil {
+		if err == ErrNoCmdGiven {
+			Chatter(m.Content, conf, s, m)
+		} else if err != nil {
 			s.ChannelMessageSend(m.ChannelID, err.Error())
 		}
 
