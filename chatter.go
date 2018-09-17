@@ -1,12 +1,16 @@
 package main
 
 import (
+	"golang.org/x/time/rate"
 	"strings"
+	"time"
 
 	dgo "github.com/bwmarrin/discordgo"
 )
 
 var (
+	r      = rate.Every(time.Duration(time.Second * 15))
+	L      = rate.NewLimiter(r, 1)
 	SWEARS = []string{"fuck", "shit", "dick", "pussy", "ass"}
 )
 
@@ -20,8 +24,8 @@ func ContainsAny(s string, terms []string) bool {
 	return false
 }
 
-func Chatter(content string, conf Conf, session *dgo.Session, message *dgo.MessageCreate) {
-	if ContainsAny(content, SWEARS) {
-		s.ChannelMessageSend("You've got a dirty mouth, you need a spanking.")
+func Chatter(c string, conf Conf, s *dgo.Session, m *dgo.MessageCreate) {
+	if L.Allow() && ContainsAny(c, SWEARS) {
+		s.ChannelMessageSend(m.ChannelID, "You've got a dirty mouth, you need a spanking.")
 	}
 }
