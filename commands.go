@@ -43,6 +43,8 @@ func Route(input string, conf Conf, cmds map[string]Command, s *dgo.Session, e i
 			}
 			return cmd(args[1:], conf, s, e)
 		}
+
+		return ErrNoCmdGiven
 	case *dgo.Ready:
 	case *dgo.Connect:
 	case *dgo.Resumed:
