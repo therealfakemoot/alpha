@@ -46,7 +46,9 @@ func Route(input string, conf Conf, cmds map[string]Command, s *dgo.Session, e i
 
 		return ErrNoCmdGiven
 	case *dgo.Ready:
+		fallthrough
 	case *dgo.Connect:
+		fallthrough
 	case *dgo.Resumed:
 		s.UpdateStatus(0, conf.Status)
 	default:
