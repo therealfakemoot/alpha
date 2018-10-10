@@ -7,6 +7,7 @@ import (
 
 	dgo "github.com/bwmarrin/discordgo"
 	trash "github.com/therealfakemoot/trash-talk"
+	bolt "go.etcd.io/bbolt"
 )
 
 // ErrUnexpectedEvent is thrown when discordgo gives me an unexpected or unhandled event.
@@ -28,10 +29,10 @@ var (
 )
 
 // Command blah blah
-type Command func(args []string, conf Conf, s *dgo.Session, e interface{}) error
+type Command func(args []string, db *bolt.DB, s *dgo.Session, e interface{}) error
 
 // Route blah blah
-func Route(input string, conf Conf, cmds map[string]Command, s *dgo.Session, e interface{}) error {
+func Route(input string, db *bolt.DB, cmds map[string]Command, s *dgo.Session, e interface{}) error {
 	switch e.(type) {
 	case *dgo.MessageCreate:
 		args := strings.Split(input, " ")
@@ -41,12 +42,19 @@ func Route(input string, conf Conf, cmds map[string]Command, s *dgo.Session, e i
 			if !ok {
 				return ErrNoCmdFound
 			}
-			return cmd(args[1:], conf, s, e)
+			return cmd(args[1:], db, s, e)
 		}
 
 		return ErrNoCmdGiven
 	case *dgo.Ready, *dgo.Connect, *dgo.Resumed:
-		s.UpdateStatus(0, conf.Status)
+		var status string
+		db.View(func(tx *bolt.Tx) error {
+			b := tx.Bucket([]byte("core"))
+			status = string(b.Get([]byte("status")))
+
+			return nil
+		})
+		s.UpdateStatus(0, status)
 	default:
 		return ErrUnexpectedEvent{event: e}
 	}
@@ -54,8 +62,7 @@ func Route(input string, conf Conf, cmds map[string]Command, s *dgo.Session, e i
 }
 
 // Mock is a Command that makes fun of the last message a given user sent.
-func Mock(args []string, conf Conf, s *dgo.Session, e interface{}) error {
-	msgMap := conf.State["msgMap"].(map[string]*dgo.Message)
+func Mock(args []string, db *bolt.DB, s *dgo.Session, e interface{}) error {
 	m := e.(*dgo.MessageCreate)
 	if len(m.Message.Mentions) == 0 {
 		s.ChannelMessageSend(m.ChannelID, "You didn't mention anyone.")
@@ -63,17 +70,23 @@ func Mock(args []string, conf Conf, s *dgo.Session, e interface{}) error {
 	}
 
 	target := m.Message.Mentions[0].ID
-	targetMsg, ok := msgMap[target]
-	if !ok {
-		s.ChannelMessageSend(m.ChannelID, "They haven't said anything yet.")
-		return ErrIncorrectArgs
-	}
 
-	s.ChannelMessageSend(m.ChannelID, trash.Mock(targetMsg.Content))
-	return nil
+	var targetMsg string
+	db.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte(m.GuildID))
+		messages := b.Bucket([]byte("messages"))
+
+		targetMsg = string(messages.Get([]byte(target)))
+
+		return nil
+	})
+
+	_, err := s.ChannelMessageSend(m.ChannelID, trash.Mock(targetMsg))
+
+	return err
 }
 
-func Complain(args []string, conf Conf, s *dgo.Session, e interface{}) error {
+func Complain(args []string, db *bolt.DB, s *dgo.Session, e interface{}) error {
 	m := e.(*dgo.MessageCreate)
 	s.ChannelMessageSend(m.ChannelID, "Life is hard.")
 

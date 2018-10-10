@@ -7,6 +7,8 @@ import (
 	"os"
 	"os/user"
 	"path/filepath"
+
+	bolt "go.etcd.io/bbolt"
 )
 
 // Conf is for deserializing the JSON config file.
@@ -17,8 +19,8 @@ type Conf struct {
 	State  map[string]interface{}
 }
 
-// LoadConfig instantiates a Viper object with config info required for the bot to work.
-func LoadConfig() Conf {
+// LoadConfig parses the JSON config file and initializes or updates the provided boltdb instance.
+func LoadConfig(db *bolt.DB) {
 	var v Conf
 
 	user, err := user.Current()
@@ -43,5 +45,29 @@ func LoadConfig() Conf {
 		log.Fatalf("Error unmarshaling JSON: %s", err)
 	}
 
-	return v
+	// This is the initializer. It will create a bucket for the bot's core info and populate that bucket with info from the config.json, or it will update existing keys to match what's currently in the config.
+	db.Update(func(tx *bolt.Tx) error {
+		b, err := tx.CreateBucketIfNotExists([]byte("core"))
+
+		if err != nil {
+			return err
+		}
+
+		err = b.Put([]byte("token"), []byte(v.Token))
+		if err != nil {
+			return err
+		}
+
+		err = b.Put([]byte("prefix"), []byte(v.Prefix))
+		if err != nil {
+			return err
+		}
+
+		err = b.Put([]byte("status"), []byte(v.Status))
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
 }

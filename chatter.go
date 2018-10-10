@@ -8,6 +8,7 @@ import (
 	"golang.org/x/time/rate"
 
 	dgo "github.com/bwmarrin/discordgo"
+	bolt "go.etcd.io/bbolt"
 )
 
 type ErrNoPromptMatch struct{}
@@ -48,7 +49,7 @@ func containsAny(s string, terms []string) bool {
 	return false
 }
 
-func Chatter(c string, conf Conf, s *dgo.Session, m *dgo.MessageCreate) {
+func Chatter(c string, db *bolt.DB, s *dgo.Session, m *dgo.MessageCreate) {
 	r, err := Swears.Reply(c)
 
 	if err != nil {
