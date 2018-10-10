@@ -62,7 +62,11 @@ func Route(input string, db *bolt.DB, cmds map[string]Command, s *dgo.Session, e
 
 			return nil
 		})
-		s.UpdateStatus(0, status)
+		err := s.UpdateStatus(0, status)
+		if err != nil {
+			// These events aren't associated with a channel so I've got to dump errors to stdout
+			fmt.Printf("error updating status: %s", err)
+		}
 	default:
 		return ErrUnexpectedEvent{event: e}
 	}
