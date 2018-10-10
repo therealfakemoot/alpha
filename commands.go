@@ -37,7 +37,15 @@ func Route(input string, db *bolt.DB, cmds map[string]Command, s *dgo.Session, e
 	case *dgo.MessageCreate:
 		args := strings.Split(input, " ")
 
-		if string(args[0][0]) == "!" {
+		var prefix string
+		db.View(func(tx *bolt.Tx) error {
+			b := tx.Bucket([]byte("core"))
+			status = string(b.Get([]byte("prefix")))
+
+			return nil
+		})
+
+		if string(args[0][0]) == prefix {
 			cmd, ok := cmds[args[0][1:]]
 			if !ok {
 				return ErrNoCmdFound
