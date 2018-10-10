@@ -2,45 +2,17 @@ package main
 
 import (
 	"log"
-	"os/user"
 
 	dgo "github.com/bwmarrin/discordgo"
-	"github.com/spf13/viper"
-
-	"github.com/therealfakemoot/alpha/routes"
 )
 
-// LoadConfig instantiates a Viper object with config info required for the bot to work.
-func LoadConfig() *viper.Viper {
-	v := viper.New()
-
-	v.SetEnvPrefix("ALPHA")
-	v.AutomaticEnv()
-	v.SetConfigName(".alpha")
-	v.AddConfigPath("/etc/alpha")
-
-	user, err := user.Current()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	v.AddConfigPath(user.HomeDir)
-
-	err = v.ReadInConfig()
-	if err != nil {
-		log.Panicf("Fatal error config file: %s \n", err)
-	}
-
-	return v
-}
-
-func updateState(conf *viper.Viper, e interface{}) {
+func updateState(conf Conf, e interface{}) {
 	switch e.(type) {
 	case *dgo.MessageCreate:
 		m := e.(*dgo.MessageCreate)
-		msgMap := conf.Get("msgMap").(map[string]*dgo.Message)
+		msgMap := conf.State["msgMap"].(map[string]*dgo.Message)
 		msgMap[m.Author.ID] = m.Message
-		conf.Set("msgMap", msgMap)
+		conf.State["msgMap"] = msgMap
 	case *dgo.Ready:
 	default:
 		return
@@ -49,34 +21,44 @@ func updateState(conf *viper.Viper, e interface{}) {
 
 func main() {
 	conf := LoadConfig()
+	conf.State = make(map[string]interface{})
 
-	token := "Bot " + conf.GetString("token")
-
+	token := "Bot " + conf.Token
 	msgMap := make(map[string]*dgo.Message)
-	conf.Set("msgMap", msgMap)
+	conf.State["msgMap"] = msgMap
 
 	s, err := dgo.New(token)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	root := routes.Build()
-	root.On("mock", routes.Mock(conf)).Desc("Makes fun of the last message sent by a user.")
+	cmds := make(map[string]Command)
+	cmds["mock"] = Mock
+	cmds["bitch"] = Complain
 
 	s.AddHandler(func(s *dgo.Session, r *dgo.Ready) {
-		s.UpdateStatus(0, conf.GetString("status"))
+		Route("", conf, cmds, s, r)
 	})
 
 	s.AddHandler(func(s *dgo.Session, r *dgo.Connect) {
-		s.UpdateStatus(0, conf.GetString("status"))
+		Route("", conf, cmds, s, r)
 	})
 
 	s.AddHandler(func(s *dgo.Session, r *dgo.Resumed) {
-		s.UpdateStatus(0, conf.GetString("status"))
+		Route("", conf, cmds, s, r)
 	})
 
 	s.AddHandler(func(s *dgo.Session, m *dgo.MessageCreate) {
-		root.FindAndExecute(s, conf.GetString("prefix"), s.State.User.ID, m.Message)
+		if m.Author.ID == s.State.User.ID {
+			return
+		}
+		err = Route(m.Content, conf, cmds, s, m)
+		if err == ErrNoCmdGiven {
+			Chatter(m.Content, conf, s, m)
+		} else if err != nil {
+			s.ChannelMessageSend(m.ChannelID, err.Error())
+		}
+
 		updateState(conf, m)
 
 	})
