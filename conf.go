@@ -15,7 +15,7 @@ import (
 type Conf struct {
 	Token  string `json:"token"`
 	Prefix string `json:"prefix"`
-	Status string `json:"string"`
+	Status string `json:"status"`
 	State  map[string]interface{}
 }
 
